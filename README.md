@@ -12,6 +12,21 @@ assert`${baz} doesn't match /^\w+$/ or ${() => quux()} throws`;
 assert`0 < ${x} < 10 and ${y}.length >= 0`;
 ```
 
+And with the default assertions:
+
+```js
+assert`${[1, 2, 3]}.length === 1`;
+```
+
+will print:
+
+```
+AssertionError: assertion failed:
+  [1, 2, 3].length === 1
+  |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯     |
+  3                    1
+```
+
 ## Syntax
 
 The syntax supported by `assert` is fairly simple:
@@ -30,16 +45,19 @@ Parentheses are not supported.
 
 ## Adding patterns
 
-By default, `assert` does not support any pattern. In order to make it useful,
-users are expected to add patterns manually by calling one of the `withPattern`
-functions on `assert`.
+A default version of `assert` with some supported patterns is provided. It is
+possible to add patterns to `assert` with the `withFunction`,
+`with{Infix,Postfix,Prefix}Operator`, and `withPattern` functions.
 
 Please refer to the documentation of the [`Assert`](
 ./src/lib.ts#:~:text=interface%20Assert) interface for more information.
 
+One can also use `emptyAssert` to start with a version of `assert` that does not
+support any pattern.
+
 As a short example:
 ```js
-const myAssert = assert
+const myAssert = emptyAssert
   .withPattern("_ is _", ([a, b]) => expect(a).toBe(b))
   .withInfixOperator(/is(n't| not)/, ([a, b]) => expect(a).not.toBe(b))
 ;
@@ -56,9 +74,5 @@ myAssert`false is not true`;
 
 ## To-do
 
-1. Provide more default patterns for the [jest](./src/jest.ts),
-   [chai](./src/chai.ts), and [assert](./src/assert.ts) implementations.
-2. Add more tests for the [jest](./src/jest.test.ts),
-   [chai](./src/chai.test.ts), and [assert](./src/assert.test.ts)
-   implementations.
-3. Publish the package on npm.
+1. Add [more tests](./src/index.test.ts).
+2. Publish the package on npm.

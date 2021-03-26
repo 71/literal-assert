@@ -41,7 +41,7 @@ module.exports = {
       {
         code: 100,
         comments: 80,
-        ignorePattern: "^ *(\\*|//) ([sS]ee )?http\\S+\\)?.?$|^ *// =+(  [^=]+  =+)?$",
+        ignorePattern: "^ *(\\*|//) +([sS]ee )?http\\S+\\)?.?$|^ *// =+(  [^=]+  =+)?$",
       },
     ],
     "multiline-ternary": ["error", "always-multiline"],

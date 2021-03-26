@@ -1,0 +1,59 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`infix operator '===' with letters 1`] = `
+"assertion failed:
+  [\\"a\\", \\"b\\", \\"c\\", \\"d\\", \\"e\\", \\"f\\", \\"g\\", \\"h\\", \\"i\\", \\"j\\", \\"k\\", \\"l\\"].length === 26
+  |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯     |¯
+  12                                                                      26"
+`;
+
+exports[`infix operator '===' with letters 2`] = `
+"assertion failed:
+  (...).length === 26
+  |¯¯¯¯            |¯
+  |¯|¯¯¯¯¯¯¯¯¯     |
+  [\\"a\\", \\"b\\", \\"c\\", \\"d\\", \\"e\\", \\"f\\", \\"g\\", \\"h\\", \\"i\\", \\"j\\", \\"k\\", \\"l\\", \\"m\\", \\"n\\", \\"o\\", \\"p\\"]
+    16             26"
+`;
+
+exports[`infix operator '===' with numbers 1`] = `
+"assertion failed:
+  [1, 2, 3].length === 1
+  |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯     |
+  3                    1"
+`;
+
+exports[`infix operator '===' with strings 1`] = `
+"assertion failed:
+  \\" is \\".slice(1, 3) === \\"no\\"
+  |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯     |¯¯¯
+  \\"is\\"                   \\"no\\""
+`;
+
+exports[`infix operator 'does not match' 1`] = `
+"assertion failed:
+  \\"abc\\" doesn't match /[a-z]/
+  |¯¯¯¯               |¯¯¯¯¯¯
+  \\"abc\\"               /[a-z]/"
+`;
+
+exports[`infix operator 'matches' 1`] = `
+"assertion failed:
+  \\"not foo\\" matches /^\\\\w+$/
+  |¯¯¯¯¯¯¯¯         |¯¯¯¯¯¯
+  \\"not foo\\"         /^\\\\w+$/"
+`;
+
+exports[`infix operator 'throws' 1`] = `
+"assertion failed:
+  ƒ() throws class AssertionError (threw e)
+  |¯¯        |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯        |
+  ƒ()        class AssertionError        TypeError: Cannot read property 'foo' of undefined"
+`;
+
+exports[`postfix operator 'throws' 1`] = `
+"assertion failed:
+  ƒ() throws
+  |¯¯
+  ƒ()"
+`;

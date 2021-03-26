@@ -1,3 +1,6 @@
+import { AssertionError } from "./internal/error";
+export { AssertionError };
+
 /**
  * Throws an exception if the given operator name is invalid.
  */
@@ -36,7 +39,7 @@ function ensureFunctionNameIsValid(functionName: string) {
  * Throws an error if the given array has a length different from `this`,
  * which must be a number.
  */
-function throwIfLengthIsNot(this: number, args: any[]) {
+function throwIfLengthIsNot(this: number, args: readonly any[]) {
   if (this !== args.length) {
     throw new Error("expected " + this + " argument(s), but got " + args.length);
   }
@@ -210,7 +213,8 @@ function splitRange(text: string, re: RegExp) {
 }
 
 type AssertionFunction<Arguments extends readonly any[]>
-  = (values: Arguments, valueStrings: readonly string[]) => AssertionResult;
+  = (values: Arguments, valueStrings: readonly string[],
+     interpolatedValues: readonly any[]) => AssertionResult;
 type ValidationFunction
   = (values: readonly string[], operatorOrNameMatch: readonly string[]) => void;
 
@@ -325,11 +329,11 @@ function compileAssertion(patterns: PatternsDictionary, strings: TemplateStrings
       }
 
       const argsCodeString = argsCode.join(", "),
-            argsCodeJsonString = argsCodeString === "..._"
-              ? JSON.stringify([cond])
-              : JSON.stringify([cond, ...argsCode]);
+            argsCodeJsonString = JSON.stringify([cond, ...argsCode]);
 
-      conditions.push(`this[${calledFunctionIndex}]([${argsCodeString}], ${argsCodeJsonString})`);
+      conditions.push(
+        `this[${calledFunctionIndex}]([${argsCodeString}], ${argsCodeJsonString}, _)`,
+      );
     }
 
     conjunctions.push(conditions);
@@ -645,7 +649,7 @@ export type PatternFunction<T extends string>
  * `a and b or c and d`) is interpreted as `(a && b) || (c && d)`. Do note that
  * parenthesized expressions are not supported.
  *
- * @see assert
+ * @see emptyAssert
  */
 export interface Assert {
   (strings: TemplateStringsArray, ...args: any[]): void;
@@ -810,11 +814,147 @@ export interface Assert {
 
 /**
  * The base `assert` function. It does not support any comparison, and must be
- * extended with `withPattern`.
- *
- * Default implementations of `assert` are available in the `assert`, `chai`,
- * and `jest` modules.
+ * extended with `withFunction`, `with{Infix,Postfix,Prefix}Operator`, or
+ * `withPattern`.
  *
  * @see Assert
  */
-export const assert = makeAssert({ patterns: [], regExp: /^ / });
+export const emptyAssert = makeAssert({ patterns: [], regExp: /^ / });
+
+/**
+ * The default `assert` function.
+ *
+ * It supports the following patterns, listed by category.
+ *
+ * Equality:
+ * - `a === b`.
+ * - `a !== b`.
+ * - `a == b`.
+ * - `a != b`.
+ * - `a is b`, `a are b`: [`Object.is`](
+ *   https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object/is)
+ *   `(a, b)`.
+ * - `a isn't b`, `a aren't b`: `!`[`Object.is`](
+ *   https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object/is)
+ *   `(a, b)`.
+ *
+ * Regular expressions:
+ * - `a matches b`: `b.test(a)`.
+ * - `a doesn't match b`: `!b.test(a)`.
+ *
+ * Exceptions:
+ * - `f throws`: `try { f() } catch (_) { return true; } return false;`
+ * - `f throws e`: `try { f() } catch (err) { return err instanceof e; }
+ *   return false;`
+ *
+ * @see Assert
+ */
+export const assert = emptyAssert
+  .withInfixOperator("===", (values, sources, args) => {
+    const a = values[0],
+          ax = sources[1];
+
+    for (let i = 1; i < values.length; i++) {
+      const b = values[i],
+            bx = sources[i + 1];
+
+      AssertionError.assert(a === b, (fmt) => fmt`${args}${a}${ax} === ${b}${bx}`);
+    }
+  })
+  .withInfixOperator("!==", (values, sources, args) => {
+    for (let i = 0; i < values.length; i++) {
+      const a = values[i],
+            ax = sources[i + 1];
+
+      for (let j = i + 1; j < values.length; j++) {
+        const b = values[j],
+              bx = values[j + 1];
+
+        AssertionError.assert(a !== b, (fmt) => fmt`${args}${a}${ax} !== ${b}${bx}`);
+      }
+    }
+  })
+
+  .withInfixOperator("==", (values, sources, args) => {
+    const a = values[0],
+          ax = sources[1];
+
+    for (let i = 1; i < values.length; i++) {
+      const b = values[i],
+            bx = sources[i + 1];
+
+      AssertionError.assert(a === b, (fmt) => fmt`${args}${a}${ax} == ${b}${bx}`);
+    }
+  })
+  .withInfixOperator("!=", (values, sources, args) => {
+    for (let i = 0; i < values.length; i++) {
+      const a = values[i],
+            ax = sources[i + 1];
+
+      for (let j = i + 1; j < values.length; j++) {
+        const b = values[j],
+              bx = values[j + 1];
+
+        AssertionError.assert(a !== b, (fmt) => fmt`${args}${a}${ax} != ${b}${bx}`);
+      }
+    }
+  })
+
+  .withInfixOperator(/is|are/, (values, sources, args) => {
+    const a = values[0],
+          ax = sources[1];
+
+    for (let i = 1; i < values.length; i++) {
+      const b = values[i],
+            bx = sources[i + 1];
+
+      AssertionError.assert(Object.is(a, b), (fmt) => fmt`${args}${a}${ax} is ${b}${bx}`);
+    }
+  })
+  .withInfixOperator(/(?:is|are)(?:n't| not)/, (values, sources, args) => {
+    for (let i = 0; i < values.length; i++) {
+      const a = values[i],
+            ax = sources[i + 1];
+
+      for (let j = i + 1; j < values.length; j++) {
+        const b = values[j],
+              bx = values[j + 1];
+
+        AssertionError.assert(!Object.is(a, b), (fmt) => fmt`${args}${a}${ax} isn't ${b}${bx}`);
+      }
+    }
+  })
+
+  .withInfixOperator("matches", throwIfLengthIsNot.bind(2), ([s, re], [_, sx, rex], args) => {
+    AssertionError.assert((re as RegExp).test(s),
+                          (fmt) => fmt`${args}${s}${sx} matches ${re}${rex}`);
+  })
+  .withInfixOperator(/does(?:n't| not) match/, ([s, re], [_, sx, rex], args) => {
+    AssertionError.assert(!(re as RegExp).test(s),
+                          (fmt) => fmt`${args}${s}${sx} doesn't match ${re}${rex}`);
+  })
+
+  .withPostfixOperator("throws", ([f], [_, fx], args) => {
+    try {
+      f();
+    } catch (e) {
+      return;
+    }
+
+    throw AssertionError.format`${args}${f}${fx} throws`;
+  })
+
+  .withInfixOperator("throws", ([f, err], [_, fx, errx], args) => {
+    try {
+      f();
+    } catch (e) {
+      if (e instanceof err) {
+        return;
+      }
+
+      throw AssertionError.format`${args}${f}${fx} throws ${err}${errx} (threw ${e}${"e"})`;
+    }
+
+    throw AssertionError.format`${args}${f}${fx} throws ${err}${errx}`;
+  })
+;
